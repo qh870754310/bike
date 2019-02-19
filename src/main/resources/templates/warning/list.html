@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>告警信息</title>
+    <th:block th:insert="~{shared/list::resource}"/>
+    <script th:inline="javascript">
+        let $grid = null, bikeId = [[${bikeId}]];
+        $(function () {
+            $grid = $('#grid');
+            $grid.datagrid({
+                width: document.documentElement.clientWidth - 2,
+                height: document.documentElement.clientHeight - 54,
+                url: '/warning/getDataGrid?bikeId=' + bikeId,
+                idField: 'id',
+                rownumbers: true,
+                singleSelect: true,
+                pagination: true,
+                pageSize: 20,
+                pageList: [20, 50, 100],
+                sortName: 'warningTime',
+                sortOrder: 'desc',
+                remoteSort: true,
+                emptyMsg: '未查询到任何数据...',
+                columns: [
+                    [
+                        {title: '故障类型', field: 'warningType', width: 100},
+                        {title: '报警时间', field: 'warningTime', width: 100},
+                        {title: '故障详情', field: 'details', width: 250},
+                        {title: '处理人', field: 'handlePerson', width: 100},
+                        {title: '处理时间', field: 'handleTime', width: 100},
+                    ]
+                ]
+            });
+            //自适应大小
+            $(window).resize(function () {
+                $grid.datagrid('resize', {
+                    width: document.documentElement.clientWidth - 2,
+                    height: document.documentElement.clientHeight - 54
+                });
+            });
+            //删除
+            $('#del').on('click', function () {
+                layer.confirm('您确定要重置数据吗？', {
+                    icon: 3,
+                    title: '<i class="iconfont icon-prompt" style="font-size: 12px"></i>&nbsp;提示',
+                    anim: 1
+                }, function (index) {
+                    $.ajax({
+                        url: '/warning/del?bikeId=' + bikeId,
+                        type: "GET",
+                        dataType: "json",
+                        async: false,
+                        success: function (data) {
+                            if (data.state) {//删除成功
+                                top.layer.msg('恭喜您，数据删除成功！', {icon: 1, offset: '2px'});
+                                reloadGrid();
+                            } else {//删除失败
+                                top.layer.msg('很抱歉，数据删除失败！', {icon: 5, offset: '2px'});
+                            }
+                        }
+                    });
+                    layer.close(index);
+                });
+            });
+        });
+
+        /**
+         * 重新加载列表
+         */
+        function reloadGrid() {
+            $grid.datagrid('clearSelections').datagrid('reload');
+        }
+    </script>
+</head>
+<body>
+<div class="head without-condition">
+    <div class="button">
+        <ul>
+            <li id="del"><i class="iconfont icon-10"></i>重置</li>
+        </ul>
+    </div>
+</div>
+<div class="body without-condition">
+    <table id="grid"></table>
+</div>
+</body>
+</html>

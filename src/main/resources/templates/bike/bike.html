@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>单车管理</title>
+    <th:block th:insert="~{shared/list::resource}"/>
+    <script>
+        let $grid = null;
+        $(function () {
+            $grid = $('#grid');
+            $grid.datagrid({
+                width: document.documentElement.clientWidth - 2,
+                height: document.documentElement.clientHeight - 101,
+                url: '/bike/getDataGrid',
+                idField: 'id',
+                rownumbers: true,
+                singleSelect: true,
+                pagination: true,
+                pageSize: 20,
+                pageList: [20, 50, 100],
+                sortName: 'sn',
+                sortOrder: 'asc',
+                remoteSort: true,
+                emptyMsg: '未查询到任何数据...',
+                frozenColumns: [
+                    [
+                        {title: '设备编号', field: 'sn', width: 150},
+                        {title: '二维码编号', field: 'qrCode', width: 150}
+                    ]
+                ],
+                columns: [
+                    [
+                        {title: '位置', field: 'location', width: 150},
+                        {title: '经度', field: 'longitude', width: 150},
+                        {title: '纬度', field: 'latitude', width: 150},
+                        {title: '定位方式', field: 'locationType', width: 150},
+                        {
+                            title: '在线状态', field: 'state', width: 150, formatter: function (value) {
+                                if (value === 1) {
+                                    return '在线';
+                                } else {
+                                    return '离线';
+                                }
+                            }
+                        },
+                        {title: '电量(%)', field: 'electric', width: 150},
+                        {title: '速度(m/s)', field: 'speed', width: 150},
+                        {
+                            title: '锁状态', field: 'locked', width: 150, formatter: function (value) {
+                                if (value === 1) {
+                                    return '锁开';
+                                } else {
+                                    return '锁关';
+                                }
+                            }
+                        }
+                    ]
+                ]
+            });
+            //自适应大小
+            $(window).resize(function () {
+                $grid.datagrid('resize', {
+                    width: document.documentElement.clientWidth - 2,
+                    height: document.documentElement.clientHeight - 101
+                });
+            });
+            //查询
+            $('.query').on('click', function () {
+                let formData = conditionForm.getData(), param = [];
+                if (formData.get('qrCode')) {
+                    param.push('qrCode☻' + formData.get('qrCode'));
+                }
+                if (formData.get('sn')) {
+                    param.push('sn☻' + formData.get('sn'));
+                }
+                if (param.length > 0) {
+                    $grid.datagrid('options').queryParams = {
+                        param: param.join('≌')
+                    };
+                } else {
+                    $grid.datagrid('options').queryParams = {};
+                }
+                reloadGrid();
+            });
+            //重置
+            $('.reset').on('click', function () {
+                conditionForm.getElement("sn").setValue('');
+                conditionForm.getElement("qrCode").setValue('');
+                $grid.datagrid('options').queryParams = {};
+                reloadGrid();
+            });
+            //新增
+            $('#add').on('click', function () {
+                func.openForm({title: '新增单车', height: '250px', width: '400px', url: '/bike/form'});
+            });
+            //编辑
+            $('#edit').on('click', function () {
+                let row = $grid.datagrid('getSelected');
+                if (row) {
+                    func.openForm({title: '修改单车', height: '250px', width: '400px', url: '/bike/form?id=' + row.id});
+                } else {
+                    func.topMsg('请选择一条单车信息！', 7);
+                }
+            });
+            //删除
+            $('#del').on('click', function () {
+                let row = $grid.datagrid('getSelected');
+                if (row) {
+                    func.delConfirm('/archives/del/' + row.id);
+                } else {
+                    func.topMsg('请选择一条单车信息！', 7);
+                }
+            });
+            //发送指令
+            $('#send').on('click', function () {
+                let row = $grid.datagrid('getSelected');
+                if (row) {
+                    func.openForm({
+                        title: '发送指令',
+                        height: '300px',
+                        width: '350px',
+                        url: '/command/sendView?id=' + row.id
+                    });
+                } else {
+                    func.topMsg('请选择一条单车信息！', 7);
+                }
+            });
+            //指令记录
+            $('#command').on('click', function () {
+                let row = $grid.datagrid('getSelected');
+                if (row) {
+                    layer.open({
+                        type: 2,
+                        title: '<i class="iconfont icon-1" style="font-size: 12px"></i>&nbsp;指令记录',
+                        resize: false,
+                        moveOut: true,
+                        anim: 1,
+                        area: ['850px', '450px'],
+                        content: '/command/list?id=' + row.id
+                    });
+                } else {
+                    func.topMsg('请选择一条单车信息！', 7);
+                }
+            });
+            //告警记录
+            $('#warning').on('click', function () {
+                let row = $grid.datagrid('getSelected');
+                if (row) {
+                    layer.open({
+                        type: 2,
+                        title: '<i class="iconfont icon-1" style="font-size: 12px"></i>&nbsp;告警记录',
+                        resize: false,
+                        moveOut: true,
+                        anim: 1,
+                        area: ['850px', '450px'],
+                        content: '/warning/list?bikeId=' + row.id
+                    });
+                } else {
+                    func.topMsg('请选择一条单车信息！', 7);
+                }
+            });
+        });
+
+        /**
+         * 重新加载列表
+         */
+        function reloadGrid() {
+            $grid.datagrid('clearSelections').datagrid('reload');
+        }
+    </script>
+</head>
+<body>
+<div class="head">
+    <div class="button">
+        <ul>
+            <li id="add"><i class="iconfont icon-9"></i>新增</li>
+            <li id="edit"><i class="iconfont icon-11"></i>修改</li>
+            <li id="del"><i class="iconfont icon-10"></i>删除</li>
+            <li id="send"><i class="iconfont icon-1"></i>发送指令</li>
+            <li id="command"><i class="iconfont icon-1"></i>指令记录</li>
+            <li id="warning"><i class="iconfont icon-1"></i>告警记录</li>
+        </ul>
+    </div>
+    <div class="condition form" id="condtion-form">
+        <ul class="base">
+            <li>
+                <label>设备编号</label>
+                <input type="text" id="sn" placeholder="设备编号">
+            </li>
+            <li>
+                <label>二维码编号</label>
+                <input type="text" id="qrCode" placeholder="二维码编号">
+            </li>
+            <li>
+                <a class="btn query"><i class="iconfont icon-query"></i>查询</a>
+            </li>
+            <li>
+                <a class="btn reset"><i class="iconfont icon-reset"></i>重置</a>
+            </li>
+        </ul>
+        <script>
+            var conditionForm = new Form('condtion-form');
+            conditionForm.initial();
+        </script>
+    </div>
+</div>
+<div class="body">
+    <table id="grid"></table>
+</div>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="hd.bike.dao.BikeDao">
+    <insert id="add">
+        INSERT INTO bike (id, sn, qrCode)
+        VALUES (#{id}, #{sn}, #{qrCode})
+    </insert>
+    <update id="modify">
+        UPDATE bike
+        SET sn     = #{sn},
+            qrCode = #{qrCode}
+        WHERE id = #{id}
+    </update>
+    <delete id="del">
+        DELETE
+        FROM bike
+        WHERE id = #{id}
+    </delete>
+    <select id="get" resultType="bike">
+        SELECT * FROM bike
+        <where>
+            <if test="sn!=null">
+                AND sn LIKE '%'+#{sn}+'%'
+            </if>
+            <if test="qrCode!=null">
+                AND qrCode LIKE '%'+#{qrCode}+'%'
+            </if>
+        </where>
+        <if test="sortInfo!=null">
+            ORDER BY ${sortInfo}
+        </if>
+    </select>
+    <select id="getById" resultType="bike">
+        SELECT *
+        FROM bike
+        WHERE id = #{id}
+    </select>
+    <select id="geAllBikes" resultType="java.util.Map">
+        SELECT
+            id,
+            sn,
+            location,
+            longitude,
+            latitude,
+            locationType,
+            electric,
+            speed,
+            qrCode,
+            CASE state
+        WHEN 1 THEN
+            '在线'
+        ELSE
+            '离线'
+        END AS state,
+         CASE locked
+        WHEN 1 THEN
+            '锁开'
+        ELSE
+            '锁关'
+        END AS locked
+        FROM
+            bike
+    </select>
+    <select id="getHistoryTracksPoint" resultType="java.util.Map">
+        SELECT
+            a.*, b.sn
+        FROM
+            track AS a
+        LEFT JOIN bike AS b ON a.bikeId = b.id
+        WHERE
+            a.bikeId = #{ id }
+        <if test="startDate != null and endDate != null and startDate != '' and endDate != ''">
+            AND a.recordTime BETWEEN #{ startDate }
+            AND #{ endDate }
+        </if>
+        ORDER BY
+            recordTime ASC
+    </select>
+</mapper>

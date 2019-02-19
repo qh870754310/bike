@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>发送指令</title>
+    <th:block th:insert="~{shared/form::resource}"/>
+</head>
+<body>
+<form id="form">
+    <input type="hidden" id="sn">
+    <table>
+        <tr>
+            <td>
+                <label>设备指令</label>
+                <select id="command" verify="NOTNULL">
+                    <option value="开锁">开锁</option>
+                    <option value="打开蜂鸣器">打开蜂鸣器</option>
+                    <option value="关闭蜂鸣器">关闭蜂鸣器</option>
+                    <option value="设置锁开间隔">设置锁开间隔</option>
+                    <option value="设置锁关间隔">设置锁关间隔</option>
+                </select>
+            </td>
+        </tr>
+        <tr id="timeBlock" style="display: none;">
+            <td>
+                <label>间隔(秒)</label><input type="text" id="jg">
+            </td>
+        </tr>
+    </table>
+</form>
+<script th:inline="javascript">
+    var category = [[${category}]], formData = [[${formData}]], id = [[${id}]];
+    var form = new Form('form', formData);//构造表单对象
+    form.initial();//表单初始化
+    let commandEl = form.getElement('command');
+    commandEl.onChange(function () {
+        if (commandEl.getValue() == '设置锁开间隔' || commandEl.getValue() == '设置锁关间隔') {
+            $('#timeBlock').show();
+        } else {
+            $('#timeBlock').hide();
+        }
+    });
+    $('#sn').val(id);
+
+    /**
+     * 提交表单
+     */
+    function subForm() {
+        if (form.verify()) {
+            return form.submit("/command/sendAction");
+        } else {
+            return false;
+        }
+    }
+</script>
+</body>
+</html>

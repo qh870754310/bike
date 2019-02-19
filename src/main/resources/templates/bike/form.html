@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>单车表单</title>
+    <th:block th:insert="~{shared/form::resource}"/>
+</head>
+<body>
+<form id="form">
+    <input type="hidden" id="id">
+    <table>
+        <tr>
+            <td>
+                <label>设备编号</label><input type="text" id="sn" verify="NOTNULL">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>二维码编号</label><input type="text" id="qrCode" verify="NOTNULL">
+            </td>
+        </tr>
+    </table>
+</form>
+<script th:inline="javascript">
+    var category = [[${category}]], formData = [[${formData}]];
+    var form = new Form('form', formData);//构造表单对象
+    form.initial();//表单初始化
+
+    /**
+     * 提交表单
+     */
+    function subForm() {
+        if (form.verify()) {
+            return form.submit("/bike/subForm");
+        } else {
+            return false;
+        }
+    }
+</script>
+</body>
+</html>

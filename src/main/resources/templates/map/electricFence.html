@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script th:src="@{/resource/plugin/jquery/jquery-1.12.4.min.js}"></script>
+    <script th:src="@{/resource/plugin/layer/layer.js}"></script>
+    <link rel="stylesheet" th:href="@{/resource/iconfont/iconfont.css}"/>
+    <link rel="stylesheet" th:href="@{/resource/plugin/metismenu/metisMenu.min.css}"/>
+    <script th:src="@{/resource/plugin/metismenu/metisMenu.min.js}"></script>
+    <link rel="stylesheet" th:href="@{/resource/css/common.css}"/>
+    <link rel="stylesheet" th:href="@{/resource/plugin/tabdrop/css/tabdrop.css}"/>
+    <script th:src="@{/resource/plugin/tabdrop/js/tabdrop.js}"></script>
+    <link rel="stylesheet" th:href="@{/resource/css/animate.css}"/>
+    <link rel="stylesheet" th:href="@{/resource/css/csshake.min.css}"/>
+    <link rel="stylesheet" th:href="@{/resource/css/scrollbar.css}"/>
+    <link rel="stylesheet" th:href="@{/resource/plugin/smartmenu/css/smartMenu.css}"/>
+    <script th:src="@{/resource/plugin/smartmenu/js/jquery-smartMenu.js}"></script>
+    <script th:src="@{/resource/js/function.js}"></script>
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=5qnG3inG4VhPZOcjNwj4ycZN"></script>
+    <script type="text/javascript" src="http://api.map.baidu.com/library/LuShu/1.2/src/LuShu_min.js"></script>
+    <!--加载鼠标绘制工具-->
+    <script type="text/javascript" src="http://api.map.baidu.com/library/DrawingManager/1.4/src/DrawingManager_min.js"></script>
+    <link rel="stylesheet" href="http://api.map.baidu.com/library/DrawingManager/1.4/src/DrawingManager_min.css" />
+    <!--加载检索信息窗口-->
+    <script type="text/javascript" src="http://api.map.baidu.com/library/SearchInfoWindow/1.4/src/SearchInfoWindow_min.js"></script>
+    <script type="text/javascript" th:src="@{/resource/map/GeoUtils.js}"></script>
+    <link rel="stylesheet" href="http://api.map.baidu.com/library/SearchInfoWindow/1.4/src/SearchInfoWindow_min.css" />
+    <style type="text/css">
+        body, html,#allmap {width: 100%;height: 100%;overflow: hidden;margin:0;font-family:"微软雅黑";}
+        p {
+            text-indent: 2em; /*em是相对单位，2em即现在一个字大小的两倍*/
+        }
+        button {
+            margin: auto 5px;
+        }
+    </style>
+</head>
+<body>
+<div style="background-color: #CCCCCC;background-size: cover;overflow:hidden;">
+    <div style="float:left;display:inline">
+        <p>
+            <button id="run">开始</button>
+        </p>
+    </div>
+</div>
+<div id="allmap" style="overflow:hidden;zoom:1;position:relative;">
+    <div id="map" style="height:100%;-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;"></div>
+</div>
+<script th:inline="javascript">
+    var carId = [[${carId}]], formData = [[${formData}]], bikes = [[${bikes}]];
+
+    var map = new BMap.Map("allmap", {
+        minZoom:5,
+        maxZoom:18
+    });
+
+    map.centerAndZoom(new BMap.Point(formData.longitude,formData.latitude), 17);
+
+    var top_left_navigation = new BMap.NavigationControl();
+    map.addControl(top_left_navigation);
+
+    map.addControl(new BMap.MapTypeControl({
+        mapTypes:[
+            BMAP_NORMAL_MAP,
+            BMAP_HYBRID_MAP
+        ]}
+    ));
+
+    map.setCurrentCity("常熟");
+    map.enableScrollWheelZoom(true);
+
+    var old_marker;
+    function initMarker(arrs) {
+    //   map.clearOverlays();
+        var $title = arrs.sn;
+        var $lng = arrs.longitude; //经度
+        var $lat = arrs.latitude; //纬度
+        var $id = arrs.id;
+        var point = new BMap.Point(parseFloat($lng), parseFloat($lat));
+        var myIcon = new BMap.Icon("/resource/img/map/bike.png", new BMap.Size(40,50));
+        old_marker = new BMap.Marker(point, {
+            icon:myIcon
+        });
+        old_marker.setTitle($title);
+        map.addOverlay(old_marker);
+
+        var opts = {
+            width : 250,     // 信息窗口宽度
+            height: 200,     // 信息窗口高度
+            title : "",  // 信息窗口标题
+            enableMessage: true//设置允许信息窗发送短息
+        };
+        var bikesInfoUrl = "/bike/form?id=" + $id;
+        var historyTracksUrl = "/map/historyTracksView?id=" + $id;
+        var electricFenceUrl = "/map/electricFenceView?id=" + $id;
+        var content = "设备编号：" + $title + "<br>" +
+            "二维码编号：" + arrs.qrCode + "<br>" +
+            "纬度：" + $lat + "<br>" +
+            "经度：" + $lng + "<br/>" +
+            "状态：" + arrs.locked + "<br/>" +
+            "定位方式：" + arrs.locationType + "<br>" +
+            "设备位置：" + arrs.location + "<br>" +
+            "电量：" + arrs.electric + "<br>" +
+            "速度：" + arrs.speed + "<br>";
+        addClickHandler(content,old_marker, opts);
+    }
+
+    function addClickHandler(content,marker, opts){
+        marker.addEventListener("click",function(e){
+            openInfo(content,e, opts)}
+        );
+    }
+    function openInfo(content,e, opts){
+        var p = e.target;
+        var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat);
+        var infoWindow = new BMap.InfoWindow(content,opts);  // 创建信息窗口对象
+        map.openInfoWindow(infoWindow,point); //开启信息窗口
+    }
+
+    //创建一个圆
+    var circle = new BMap.Circle(
+        new BMap.Point(120.750172,31.642238),300, {
+            fillColor:"blue",
+            strokeWeight: 5 ,
+            fillOpacity: 0.3,
+            strokeOpacity: 0.3
+        });
+    map.addOverlay(circle);
+
+    initMarker(formData);
+
+    var overlays = [];
+
+    //回调获得覆盖物信息
+    var overlaycomplete = function(e){
+        var removeMarker = function(e,ee,marker){
+            map.removeOverlay(marker);
+        };
+        var markerMenu=new BMap.ContextMenu();
+        markerMenu.addItem(new BMap.MenuItem('删除',removeMarker.bind(e.overlay)));
+        e.overlay.addContextMenu(markerMenu);
+        overlays.push(e.overlay);
+        var result = "";
+
+        result += e.drawingMode + ":";
+        if (e.drawingMode == BMAP_DRAWING_CIRCLE) {
+            var circle_radius=e.overlay.getRadius();
+            var circle_point=new BMap.Point(e.overlay.getCenter().lng,e.overlay.getCenter().lat);
+        }
+        if (e.drawingMode == BMAP_DRAWING_POLYLINE || e.drawingMode == BMAP_DRAWING_POLYGON || e.drawingMode == BMAP_DRAWING_RECTANGLE) {
+            result += ' 所画的点个数：' + e.overlay.getPath()[1].lng;
+        }
+    };
+
+    //线条样式
+    var styleOptions = {
+        strokeColor:"red",    //边线颜色。
+        fillColor:"red",      //填充颜色。当参数为空时，圆形将没有填充效果。
+        strokeWeight: 3,       //边线的宽度，以像素为单位。
+        strokeOpacity: 0.8,	   //边线透明度，取值范围0 - 1。
+        fillOpacity: 0.6,      //填充的透明度，取值范围0 - 1。
+        strokeStyle: 'solid' //边线的样式，solid或dashed。
+    };
+    //实例化鼠标绘制工具
+    var drawingManager = new BMapLib.DrawingManager(map, {
+        isOpen: false, //是否开启绘制模式
+        enableDrawingTool: true, //是否显示工具栏
+        drawingToolOptions: {
+            anchor: BMAP_ANCHOR_TOP_RIGHT, //位置
+            offset: new BMap.Size(100,10),  //偏离值
+            scale: 0.8, //工具栏缩放比例  
+            drawingTypes : [
+                BMAP_DRAWING_CIRCLE,
+                BMAP_DRAWING_RECTANGLE
+            ]
+        },
+        circleOptions: styleOptions, //圆的样式
+        polylineOptions: styleOptions, //线的样式
+        polygonOptions: styleOptions, //多边形的样式
+        rectangleOptions: styleOptions //矩形的样式
+    });
+    //添加鼠标绘制工具监听事件，用于获取绘制结果
+    drawingManager.addEventListener('overlaycomplete', overlaycomplete);
+
+    //清除所有已画图形
+    function clearAll() {
+        for(var i = 0; i < overlays.length; i++){
+            map.removeOverlay(overlays[i]);
+        }
+        overlays.length = 0
+    }
+
+    var trackPoints = [];	//用来存放从后台获取到的所有历史轨迹点的数据
+
+    $("#run").on('click', function () {
+        var url = "/map/getHistoryTracksPoint?id=" + carId;
+        $.ajax({
+            type: "GET",
+            async: false,
+            cache: true,
+            url: url,
+            dataType: "json",
+            data: {'startDate': '', 'endDate': ''},
+            success: function (result) {
+                if (result.state) {
+                    if (result.tracksPoint != undefined && result.tracksPoint.length > 0) {
+                        var tracks = result.tracksPoint;
+                        for (var i = 0; i < tracks.length; i++) {
+                            var longitude = parseFloat(tracks[i].longitude);
+                            var latitude = parseFloat(tracks[i].latitude);
+                            var sn = tracks[i].sn;
+                            trackPoints[i] = new BMap.Point(longitude, latitude);
+                        }
+                    }
+                }
+            },
+            error: function (e) {
+                alert("获取历史轨迹失败");
+            }
+        });
+        dynamicLine();
+    });
+
+    var marker, flag=false;
+    function dynamicLine() {
+        if (old_marker) {
+            map.removeOverlay(old_marker);
+        }
+        if(marker){
+            map.removeOverlay(marker);
+        }
+        //前进一步
+        var len = trackPoints.length;
+        var myIcon = new BMap.Icon("/resource/img/map/bike.png", new BMap.Size(40,50));
+        marker = new BMap.Marker(trackPoints[0], {
+            icon:myIcon
+        });  // 创建标注
+        map.addOverlay(marker);
+        //判断点是否在
+        if(!BMapLib.GeoUtils.isPointInCircle(trackPoints[0],circle)){
+            if(!flag){
+                top.layer.msg('该单车已超越电子栅栏，已发送提醒信息！', {icon: 1, offset: '2px'});
+            }
+            flag=true;
+            var label = new BMap.Label("在圈外",{offset:new BMap.Size(20,-10)});
+            marker.setLabel(label);
+        }
+        if (len > 1) {
+            DelArrayElement(trackPoints, 0);
+            setTimeout(dynamicLine, 1000);
+        }
+    }
+
+    function DelArrayElement(arr, n) {
+        if (arr == null || isNaN(n) || n >= arr.length) {
+            return false;
+        }
+        arr.splice(n, 1);
+    }
+</script>
+</body>
+</html>
